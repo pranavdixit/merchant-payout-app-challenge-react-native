@@ -2,15 +2,25 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { formatAmount } from '@/lib/format';
+import { formatAmount, formatDate } from '@/lib/format';
 import type { ActivityItem as ActivityItemData } from '@/types/api';
 
-export function ActivityItem({ item }: { item: ActivityItemData }) {
+type Props = {
+  item: ActivityItemData;
+  detailed?: boolean;
+};
+
+export function ActivityItem({ item, detailed = false }: Props) {
   return (
     <ThemedView style={styles.row}>
-      <ThemedText style={styles.description} numberOfLines={1}>
-        {item.description}
-      </ThemedText>
+      <ThemedView style={styles.main}>
+        <ThemedText numberOfLines={1}>{item.description}</ThemedText>
+        {detailed && (
+          <ThemedText style={styles.meta}>
+            {item.type} - {formatDate(item.date)}
+          </ThemedText>
+        )}
+      </ThemedView>
       <ThemedText type="defaultSemiBold">{formatAmount(item.amount, item.currency)}</ThemedText>
     </ThemedView>
   );
@@ -24,5 +34,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   },
-  description: { flex: 1 },
+  main: { flex: 1 },
+  meta: { fontSize: 13, opacity: 0.6, textTransform: 'capitalize' },
 });

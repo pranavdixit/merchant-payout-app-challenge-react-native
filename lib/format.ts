@@ -1,3 +1,5 @@
+import { format, parseISO } from 'date-fns';
+
 import type { Currency } from '@/types/api';
 
 /** @description Formats an amount in minor units (pence/cents) with its currency symbol.
@@ -7,4 +9,9 @@ import type { Currency } from '@/types/api';
  */
 export function formatAmount(minor: number, currency: Currency): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(minor / 100);
+}
+
+/** Formats an ISO date string as `DD MM YYYY`. */
+export function formatDate(iso: string): string {
+  return format(parseISO(iso), 'dd MM yyyy');
 }

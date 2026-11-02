@@ -11,6 +11,9 @@ module.exports = defineConfig([
     plugins: { 'unused-imports': unusedImports },
     rules: {
       'unused-imports/no-unused-imports': 'error',
+      // if/else always use braces; ternaries stay single-level
+      curly: ['error', 'all'],
+      'no-nested-ternary': 'error',
     },
   },
   {
