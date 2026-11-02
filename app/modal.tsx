@@ -1,29 +1,35 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet } from 'react-native';
 
+import { ActivityItem } from '@/components/activity-item';
+import { Container } from '@/components/container';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { useMerchant } from '@/hooks/use-merchant';
 
 export default function ModalScreen() {
+  const { data, isLoading } = useMerchant();
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
-    </ThemedView>
+    <Container>
+      <ThemedText type="title" style={styles.title}>
+        Activity
+      </ThemedText>
+      {!data && isLoading ? (
+        <ActivityIndicator accessibilityLabel="Loading" />
+      ) : !data ? (
+        <ThemedText>Something went wrong loading activity.</ThemedText>
+      ) : (
+        <FlatList
+          style={styles.list}
+          data={data.activity}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ActivityItem item={item} />}
+        />
+      )}
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
+  title: { marginBottom: 16 },
+  list: { flex: 1 },
 });

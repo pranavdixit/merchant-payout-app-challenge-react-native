@@ -2,10 +2,11 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Container } from '@/components/container';
 
 export default function PayoutsScreen() {
   return (
-    <ThemedView style={styles.container}>
+    <Container>
       <ThemedView style={styles.header}>
         <ThemedText type="title">Initiate Payout</ThemedText>
       </ThemedView>
@@ -13,8 +14,7 @@ export default function PayoutsScreen() {
       <ThemedView style={styles.section}>
         <ThemedText type="subtitle">Payout Amount</ThemedText>
       </ThemedView>
-
-    </ThemedView>
+    </Container>
   );
 }
 

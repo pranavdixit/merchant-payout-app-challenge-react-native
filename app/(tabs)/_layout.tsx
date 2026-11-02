@@ -16,7 +16,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -28,7 +29,9 @@ export default function TabLayout() {
         name="payouts"
         options={{
           title: 'Payouts',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="arrow.up.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="arrow.up.circle.fill" color={color} />
+          ),
         }}
       />
     </Tabs>
