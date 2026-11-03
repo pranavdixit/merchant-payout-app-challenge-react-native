@@ -164,7 +164,12 @@ describe('submitting a payout', () => {
     );
 
     await screen.findByText('Payout Completed');
-    expect(body).toEqual({ amount: 40050, currency: 'GBP', iban: VALID_IBAN });
+    expect(body).toEqual({
+      amount: 40050,
+      currency: 'GBP',
+      iban: VALID_IBAN,
+      device_id: 'test-device-id',
+    });
   });
 
   it('shows the service-unavailable failure (503) and keeps the values on Try Again', async () => {

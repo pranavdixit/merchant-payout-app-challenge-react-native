@@ -8,6 +8,12 @@ yarn-error.log*
 /ios
 /android
 
+# Gradle / native build output (also inside local modules)
+.gradle/
+build/
+.cxx/
+Pods/
+
 # Expo
 .expo/
 .expo-shared/

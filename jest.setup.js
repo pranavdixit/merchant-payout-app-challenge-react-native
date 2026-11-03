@@ -8,3 +8,8 @@ afterEach(() => server.resetHandlers());
 
 // Clean up after the tests are finished
 afterAll(() => server.close());
+
+// The native module isn't available under Jest
+jest.mock('./modules/screen-security', () => ({
+  getDeviceId: jest.fn(() => 'test-device-id'),
+}));

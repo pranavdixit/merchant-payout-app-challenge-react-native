@@ -11,6 +11,7 @@ import { PayoutResult } from '@/components/payout/payout-result';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { getPayoutErrorMessage, isPayoutSettled, usePayout } from '@/hooks/use-payout';
+import { getPayoutDeviceId } from '@/lib/device';
 import { formatAmount } from '@/lib/format';
 import { normalizeIban, payoutSchema, toMinorUnits, type PayoutFormValues } from '@/lib/payout';
 
@@ -58,6 +59,7 @@ export default function PayoutsScreen() {
         amount: toMinorUnits(pending.amount),
         currency: pending.currency,
         iban: normalizeIban(pending.iban),
+        device_id: getPayoutDeviceId(),
         idempotencyKey: attempt.current.key,
       },
       {
