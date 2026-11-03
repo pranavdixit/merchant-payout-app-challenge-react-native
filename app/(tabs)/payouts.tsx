@@ -1,32 +1,143 @@
-import { StyleSheet } from 'react-native';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { randomUUID } from 'expo-crypto';
+import { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Container } from '@/components/container';
+import { ConfirmPayoutDialog } from '@/components/payout/confirm-payout-dialog';
+import { PayoutForm } from '@/components/payout/payout-form';
+import { PayoutResult } from '@/components/payout/payout-result';
+import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
+import { getPayoutErrorMessage, isPayoutSettled, usePayout } from '@/hooks/use-payout';
+import { formatAmount } from '@/lib/format';
+import { normalizeIban, payoutSchema, toMinorUnits, type PayoutFormValues } from '@/lib/payout';
+
+type Outcome = { status: 'success' | 'error'; message: string };
+
+const OUTCOME_TITLES: Record<Outcome['status'], string> = {
+  success: 'Payout Completed',
+  error: 'Unable to Process Payout',
+};
 
 export default function PayoutsScreen() {
-  return (
-    <Container>
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Initiate Payout</ThemedText>
-      </ThemedView>
+  const form = useForm<PayoutFormValues>({
+    resolver: zodResolver(payoutSchema),
+    mode: 'onChange',
+    defaultValues: { amount: '', currency: 'GBP', iban: '' },
+  });
+  const payout = usePayout();
 
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle">Payout Amount</ThemedText>
-      </ThemedView>
+  // Values waiting on the merchant's confirmation, and how the last attempt ended
+  const [pending, setPending] = useState<PayoutFormValues | null>(null);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+
+  // One key per logical payout: reused when retrying the same details after an unconfirmed
+  // attempt, so the server can de-duplicate it, and dropped once the outcome is known.
+  const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
+
+  const confirm = (values: PayoutFormValues) => {
+    const fingerprint = JSON.stringify([
+      toMinorUnits(values.amount),
+      values.currency,
+      normalizeIban(values.iban),
+    ]);
+    if (attempt.current?.fingerprint !== fingerprint) {
+      attempt.current = { key: randomUUID(), fingerprint };
+    }
+    setPending(values);
+  };
+
+  const submit = () => {
+    if (!pending || !attempt.current) {
+      return;
+    }
+    payout.mutate(
+      {
+        amount: toMinorUnits(pending.amount),
+        currency: pending.currency,
+        iban: normalizeIban(pending.iban),
+        idempotencyKey: attempt.current.key,
+      },
+      {
+        onSuccess: (data) => {
+          attempt.current = null;
+          setPending(null);
+          const amount = formatAmount(data.amount, data.currency);
+          if (data.status === 'failed') {
+            setOutcome({
+              status: 'error',
+              message: 'Your payout could not be completed. Please try again.',
+            });
+          } else {
+            setOutcome({
+              status: 'success',
+              message: `Your payout of ${amount} has been processed successfully.`,
+            });
+          }
+        },
+        onError: (error) => {
+          // The server answered, so the attempt is settled; otherwise it may have gone through
+          if (isPayoutSettled(error)) {
+            attempt.current = null;
+          }
+          setPending(null);
+          setOutcome({ status: 'error', message: getPayoutErrorMessage(error) });
+        },
+      },
+    );
+  };
+
+  const backToForm = (reset: boolean) => {
+    payout.reset();
+    setOutcome(null);
+    if (reset) {
+      form.reset();
+    }
+  };
+
+  return (
+    <Container lightColor={Colors.light.screen} darkColor={Colors.dark.screen}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ThemedText type="title" style={styles.title}>
+          {outcome ? 'Payout' : 'Send Payout'}
+        </ThemedText>
+
+        {outcome ? (
+          <PayoutResult
+            status={outcome.status}
+            title={OUTCOME_TITLES[outcome.status]}
+            message={outcome.message}
+            actionLabel={outcome.status === 'error' ? 'Try Again' : 'Create Another Payout'}
+            onAction={() => backToForm(outcome.status !== 'error')}
+          />
+        ) : (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            contentContainerStyle={styles.content}
+          >
+            <PayoutForm form={form} onSubmit={confirm} />
+          </ScrollView>
+        )}
+      </KeyboardAvoidingView>
+
+      <ConfirmPayoutDialog
+        values={pending}
+        submitting={payout.isPending}
+        onConfirm={submit}
+        onCancel={() => setPending(null)}
+      />
     </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
+  flex: { flex: 1 },
+  title: { marginBottom: 32 },
+  content: { paddingBottom: 32 },
 });

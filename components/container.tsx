@@ -4,9 +4,15 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView } from './themed-view';
 
-export function Container({ children }: { children: React.ReactNode }) {
+type Props = {
+  children: React.ReactNode;
+  lightColor?: string;
+  darkColor?: string;
+};
+
+export function Container({ children, lightColor, darkColor }: Props) {
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.container} lightColor={lightColor} darkColor={darkColor}>
       <SafeAreaView style={styles.safeArea}>{children}</SafeAreaView>
     </ThemedView>
   );
