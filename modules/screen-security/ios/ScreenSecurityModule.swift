@@ -8,8 +8,31 @@ internal class BiometricsNotEnrolledException: Exception {
 }
 
 public class ScreenSecurityModule: Module {
+  private var screenshotObserver: NSObjectProtocol?
+
   public func definition() -> ModuleDefinition {
     Name("ScreenSecurity")
+
+    Events("onScreenshotTaken")
+
+    // Only listen while JS has a subscriber.
+    OnStartObserving {
+      guard self.screenshotObserver == nil else { return }
+      self.screenshotObserver = NotificationCenter.default.addObserver(
+        forName: UIApplication.userDidTakeScreenshotNotification,
+        object: nil,
+        queue: .main
+      ) { [weak self] _ in
+        self?.sendEvent("onScreenshotTaken")
+      }
+    }
+
+    OnStopObserving {
+      if let observer = self.screenshotObserver {
+        NotificationCenter.default.removeObserver(observer)
+        self.screenshotObserver = nil
+      }
+    }
 
     // Stable per vendor (app publisher) install; resets only when every app from the vendor is removed.
     Function("getDeviceId") { () -> String in

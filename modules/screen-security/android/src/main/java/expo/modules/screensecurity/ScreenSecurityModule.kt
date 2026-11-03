@@ -1,6 +1,8 @@
 package expo.modules.screensecurity
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.os.Build
 import android.provider.Settings
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -17,11 +19,33 @@ import expo.modules.kotlin.modules.ModuleDefinition
 private const val NOT_ENROLLED = "BIOMETRICS_NOT_ENROLLED"
 
 class ScreenSecurityModule : Module() {
+  private var observing = false
+  private var captureCallback: Activity.ScreenCaptureCallback? = null
+  private var captureActivity: Activity? = null
   private val context
     get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
 
   override fun definition() = ModuleDefinition {
     Name("ScreenSecurity")
+
+    Events("onScreenshotTaken")
+
+    // Screenshot detection needs API 34+; older versions simply never emit.
+    OnStartObserving {
+      observing = true
+      registerScreenshotCallback()
+    }
+    OnStopObserving {
+      observing = false
+      unregisterScreenshotCallback()
+    }
+    // The callback is tied to a started activity, so follow the app's foreground state.
+    OnActivityEntersForeground {
+      if (observing) registerScreenshotCallback()
+    }
+    OnActivityEntersBackground {
+      unregisterScreenshotCallback()
+    }
 
     // Scoped to the app signing key, user and device; survives reinstalls, resets on factory reset.
     Function("getDeviceId") {
@@ -61,5 +85,22 @@ class ScreenSecurityModule : Module() {
 
       BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback).authenticate(info)
     }.runOnQueue(Queues.MAIN)
+  }
+
+  private fun registerScreenshotCallback() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || captureCallback != null) return
+    val activity = appContext.currentActivity ?: return
+    val callback = Activity.ScreenCaptureCallback { sendEvent("onScreenshotTaken") }
+    activity.registerScreenCaptureCallback(ContextCompat.getMainExecutor(activity), callback)
+    captureCallback = callback
+    captureActivity = activity
+  }
+
+  private fun unregisterScreenshotCallback() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+    val callback = captureCallback ?: return
+    captureActivity?.unregisterScreenCaptureCallback(callback)
+    captureCallback = null
+    captureActivity = null
   }
 }

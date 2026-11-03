@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { http, HttpResponse } from 'msw';
+import { Alert } from 'react-native';
 
 import PayoutsScreen from '@/app/(tabs)/payouts';
 import { API_BASE_URL } from '@/constants';
+import { addScreenshotListener } from '@/modules/screen-security';
 import { server } from '../mocks/server.test';
 
 const VALID_IBAN = 'GB29NWBK60161331926819';
@@ -237,5 +239,25 @@ describe('submitting a payout', () => {
         "We couldn't confirm whether the payout went through. Check Activity before trying again.",
       ),
     ).toBeTruthy();
+  });
+});
+
+describe('screenshot warning', () => {
+  it('warns the merchant when a screenshot is taken and stops listening on unmount', () => {
+    const unsubscribe = jest.fn();
+    let emit = () => {};
+    jest.mocked(addScreenshotListener).mockImplementationOnce((listener) => {
+      emit = listener;
+      return unsubscribe;
+    });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const { unmount } = renderPayouts();
+    emit();
+
+    expect(alert).toHaveBeenCalledWith('Screenshot Detected', expect.stringContaining('private'));
+    unmount();
+    expect(unsubscribe).toHaveBeenCalled();
+    alert.mockRestore();
   });
 });

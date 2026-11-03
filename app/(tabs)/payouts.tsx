@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { randomUUID } from 'expo-crypto';
-import { useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 
 import { Container } from '@/components/container';
 import { ConfirmPayoutDialog } from '@/components/payout/confirm-payout-dialog';
@@ -11,7 +12,11 @@ import { PayoutResult } from '@/components/payout/payout-result';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { getPayoutErrorMessage, isPayoutSettled, usePayout } from '@/hooks/use-payout';
-import { isBiometricAuthenticated, isBiometricsNotEnrolledError } from '@/modules/screen-security';
+import {
+  addScreenshotListener,
+  isBiometricAuthenticated,
+  isBiometricsNotEnrolledError,
+} from '@/modules/screen-security';
 import { getPayoutDeviceId } from '@/lib/device';
 import { formatAmount } from '@/lib/format';
 import {
@@ -46,6 +51,20 @@ export default function PayoutsScreen() {
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
 
   const authenticating = useRef(false);
+
+  // Remind the merchant to keep financial details private while on this screen
+  useFocusEffect(
+    useCallback(
+      () =>
+        addScreenshotListener(() => {
+          Alert.alert(
+            'Screenshot Detected',
+            'Payout details are sensitive. Keep your financial data private and avoid sharing this screen.',
+          );
+        }),
+      [],
+    ),
+  );
 
   const confirm = (values: PayoutFormValues) => {
     const fingerprint = JSON.stringify([

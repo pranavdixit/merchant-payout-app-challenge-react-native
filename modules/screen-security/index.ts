@@ -19,3 +19,9 @@ export function isBiometricsNotEnrolledError(error: unknown): boolean {
     (error as { code?: unknown }).code === NOT_ENROLLED_CODE
   );
 }
+
+/** Calls `listener` whenever the user takes a screenshot; returns an unsubscribe function. */
+export function addScreenshotListener(listener: () => void): () => void {
+  const subscription = ScreenSecurityModule.addListener('onScreenshotTaken', listener);
+  return () => subscription.remove();
+}
