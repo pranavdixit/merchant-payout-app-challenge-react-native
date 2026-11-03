@@ -6,12 +6,19 @@ import type { Currency } from '@/types/api';
 
 export const CURRENCIES: readonly Currency[] = ['GBP', 'EUR'];
 
+/** Payouts above this (1,000.00 in either currency) need biometric approval. */
+export const BIOMETRIC_THRESHOLD_MINOR = 100000;
+
 /** Digits with an optional decimal part of up to two places. */
 const AMOUNT_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 /** Converts a decimal string ("999.99") to minor units (99999). */
 export function toMinorUnits(amount: string): number {
   return currency(amount).intValue;
+}
+
+export function requiresBiometrics(minorUnits: number): boolean {
+  return minorUnits > BIOMETRIC_THRESHOLD_MINOR;
 }
 
 /** Strips spaces and dashes and upper-cases, e.g. "gb29 nwbk ..." -> "GB29NWBK...". */

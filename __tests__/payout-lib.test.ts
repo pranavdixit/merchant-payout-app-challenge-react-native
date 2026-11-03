@@ -1,4 +1,10 @@
-import { maskIban, normalizeIban, payoutSchema, toMinorUnits } from '@/lib/payout';
+import {
+  maskIban,
+  normalizeIban,
+  payoutSchema,
+  requiresBiometrics,
+  toMinorUnits,
+} from '@/lib/payout';
 
 const VALID_IBAN = 'GB29NWBK60161331926819';
 const INVALID_IBAN = 'FR1212345123451234567A12310131231231231';
@@ -58,5 +64,12 @@ describe('payoutSchema', () => {
 
   it('rejects an unsupported currency', () => {
     expect(parse({ currency: 'USD' }).success).toBe(false);
+  });
+});
+
+describe('requiresBiometrics', () => {
+  it('only applies above 1,000.00', () => {
+    expect(requiresBiometrics(100000)).toBe(false);
+    expect(requiresBiometrics(100001)).toBe(true);
   });
 });

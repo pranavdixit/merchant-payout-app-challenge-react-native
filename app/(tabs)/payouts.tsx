@@ -11,9 +11,16 @@ import { PayoutResult } from '@/components/payout/payout-result';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { getPayoutErrorMessage, isPayoutSettled, usePayout } from '@/hooks/use-payout';
+import { isBiometricAuthenticated, isBiometricsNotEnrolledError } from '@/modules/screen-security';
 import { getPayoutDeviceId } from '@/lib/device';
 import { formatAmount } from '@/lib/format';
-import { normalizeIban, payoutSchema, toMinorUnits, type PayoutFormValues } from '@/lib/payout';
+import {
+  normalizeIban,
+  payoutSchema,
+  requiresBiometrics,
+  toMinorUnits,
+  type PayoutFormValues,
+} from '@/lib/payout';
 
 type Outcome = { status: 'success' | 'error'; message: string };
 
@@ -38,6 +45,8 @@ export default function PayoutsScreen() {
   // attempt, so the server can de-duplicate it, and dropped once the outcome is known.
   const attempt = useRef<{ key: string; fingerprint: string } | null>(null);
 
+  const authenticating = useRef(false);
+
   const confirm = (values: PayoutFormValues) => {
     const fingerprint = JSON.stringify([
       toMinorUnits(values.amount),
@@ -50,8 +59,40 @@ export default function PayoutsScreen() {
     setPending(values);
   };
 
-  const submit = () => {
-    if (!pending || !attempt.current) {
+  const abort = (message: string) => {
+    setPending(null);
+    setOutcome({ status: 'error', message });
+  };
+
+  /** Large payouts need biometric approval; returns whether the payout may proceed. */
+  const authorize = async (minorUnits: number): Promise<boolean> => {
+    if (!requiresBiometrics(minorUnits)) {
+      return true;
+    }
+    try {
+      if (await isBiometricAuthenticated()) {
+        return true;
+      }
+      abort('Biometric authentication was cancelled.');
+    } catch (error) {
+      abort(
+        isBiometricsNotEnrolledError(error)
+          ? 'Set up biometrics in your device settings to send payouts over 1,000.00.'
+          : 'Biometric authentication is unavailable. Please try again.',
+      );
+    }
+    return false;
+  };
+
+  const submit = async () => {
+    if (!pending || !attempt.current || payout.isPending || authenticating.current) {
+      return;
+    }
+    authenticating.current = true;
+    const allowed = await authorize(toMinorUnits(pending.amount)).finally(() => {
+      authenticating.current = false;
+    });
+    if (!allowed) {
       return;
     }
     payout.mutate(
@@ -131,7 +172,7 @@ export default function PayoutsScreen() {
       <ConfirmPayoutDialog
         values={pending}
         submitting={payout.isPending}
-        onConfirm={submit}
+        onConfirm={() => void submit()}
         onCancel={() => setPending(null)}
       />
     </Container>

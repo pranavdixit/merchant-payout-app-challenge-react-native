@@ -12,4 +12,6 @@ afterAll(() => server.close());
 // The native module isn't available under Jest
 jest.mock('./modules/screen-security', () => ({
   getDeviceId: jest.fn(() => 'test-device-id'),
+  isBiometricAuthenticated: jest.fn(() => Promise.resolve(true)),
+  isBiometricsNotEnrolledError: jest.fn(() => false),
 }));
