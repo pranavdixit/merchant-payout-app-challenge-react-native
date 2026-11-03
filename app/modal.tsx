@@ -22,7 +22,7 @@ export default function ModalScreen() {
 
   const loadMore = () => {
     if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) {
-      fetchNextPage();
+      void fetchNextPage();
     }
   };
 
@@ -31,7 +31,11 @@ export default function ModalScreen() {
     footer = <ActivityIndicator accessibilityLabel="Loading more" style={styles.footer} />;
   } else if (isFetchNextPageError) {
     footer = (
-      <Pressable accessibilityRole="button" onPress={() => fetchNextPage()} style={styles.button}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => void fetchNextPage()}
+        style={styles.button}
+      >
         <ThemedText type="link">Failed to load more. Try again</ThemedText>
       </Pressable>
     );
@@ -47,7 +51,11 @@ export default function ModalScreen() {
         {isFetching ? (
           <ActivityIndicator accessibilityLabel="Retrying" style={styles.button} />
         ) : (
-          <Pressable accessibilityRole="button" onPress={() => refetch()} style={styles.button}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void refetch()}
+            style={styles.button}
+          >
             <ThemedText type="link">Try again</ThemedText>
           </Pressable>
         )}

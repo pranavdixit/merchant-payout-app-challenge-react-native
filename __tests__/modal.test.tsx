@@ -67,7 +67,7 @@ describe('ModalScreen', () => {
     mockActivity(() => HttpResponse.json(page1));
     renderModal();
     expect(await screen.findByText('Item 1')).toBeTruthy();
-    expect(screen.getAllByText('payout · 07 03 2025')).toHaveLength(2);
+    expect(screen.getAllByText('payout - 07 03 2025')).toHaveLength(2);
     expect(screen.getByText('£10.00')).toBeTruthy();
   });
 

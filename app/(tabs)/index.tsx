@@ -21,7 +21,11 @@ export default function HomeScreen() {
         {isFetching ? (
           <ActivityIndicator accessibilityLabel="Retrying" style={styles.button} />
         ) : (
-          <Pressable accessibilityRole="button" onPress={() => refetch()} style={styles.button}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void refetch()}
+            style={styles.button}
+          >
             <ThemedText type="link">Try again</ThemedText>
           </Pressable>
         )}
